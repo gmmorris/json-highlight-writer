@@ -4,7 +4,7 @@ extern crate colored;
 // use colored::*;
 use json::*;
 
-use json_slice_writer::dump;
+use json_slice_writer::{dump, slice};
 
 pub fn main() {
     let data = object!{
@@ -20,8 +20,13 @@ pub fn main() {
       }
     };
 
+    // match data {
+    //   JsonValue::Object(obj) => println!("{:#}",dump(obj)),
+    //   _ => ()
+    // }
+
     match data {
-      JsonValue::Object(obj) => println!("{:#}",dump(obj)),
+      JsonValue::Object(obj) => println!("{:#}",slice(obj)),
       _ => ()
     }
 }
