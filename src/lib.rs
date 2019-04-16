@@ -1,10 +1,12 @@
 use json::object::{Object};
 
 mod generator;
-use crate::generator::codegen::{Generator, DumpGenerator};
+mod dump;
+
+use crate::generator::codegen::Generator;
 
 pub fn dump(json_object: Object) -> String {
-    let mut gen = DumpGenerator::new();
+    let mut gen = dump::DumpGenerator::new();
     gen.write_object(&json_object).expect("Can't fail");
     gen.consume()
 }

@@ -162,56 +162,12 @@ pub trait Generator {
     }
 }
 
-pub struct DumpGenerator {
-    code: Vec<u8>,
-}
-
-impl DumpGenerator {
-    pub fn new() -> Self {
-        DumpGenerator {
-            code: Vec::with_capacity(1024),
-        }
-    }
-
-    pub fn consume(self) -> String {
-        // Original strings were unicode, numbers are all ASCII,
-        // therefore this is safe.
-        unsafe { String::from_utf8_unchecked(self.code) }
-    }
-}
-
-impl Generator for DumpGenerator {
-    type T = Vec<u8>;
-
-    fn write(&mut self, slice: &[u8]) -> io::Result<()> {
-        extend_from_slice(&mut self.code, slice);
-        Ok(())
-    }
-
-    #[inline(always)]
-    fn write_char(&mut self, ch: u8) -> io::Result<()> {
-        self.code.push(ch);
-        Ok(())
-    }
-
-    #[inline(always)]
-    fn get_writer(&mut self) -> &mut Vec<u8> {
-        &mut self.code
-    }
-
-    #[inline(always)]
-    fn write_min(&mut self, _: &[u8], min: u8) -> io::Result<()> {
-        self.code.push(min);
-        Ok(())
-    }
-}
-
 // From: https://github.com/dtolnay/fastwrite/blob/master/src/lib.rs#L68
 //
 // LLVM is not able to lower `Vec::extend_from_slice` into a memcpy, so this
 // helps eke out that last bit of performance.
 #[inline]
-fn extend_from_slice(dst: &mut Vec<u8>, src: &[u8]) {
+pub fn extend_from_slice(dst: &mut Vec<u8>, src: &[u8]) {
     let dst_len = dst.len();
     let src_len = src.len();
 
