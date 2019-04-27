@@ -13,14 +13,34 @@ enum WriteSlice {
 
 pub struct SliceGenerator<'a> {
     code: Vec<WriteSlice>,
-    slice: &'a JsonValue
+    colors: Vec<Color>,
+    active_colors: Vec<Color>,
+    slices: Vec<&'a JsonValue>
 }
 
 impl<'a> SliceGenerator<'a> {
-    pub fn new(capacity: usize, slice: &'a JsonValue) -> Self {
+    pub fn new(capacity: usize, slices: Vec<&'a JsonValue>) -> Self {
         let mut gen = SliceGenerator {
             code: Vec::with_capacity(capacity),
-            slice
+            active_colors: vec![],
+            colors: vec![
+                Color::Red,
+                Color::Green,
+                Color::Yellow,
+                Color::Blue,
+                Color::Magenta,
+                Color::Cyan,
+                Color::White,
+                Color::BrightBlack,
+                Color::BrightRed,
+                Color::BrightGreen,
+                Color::BrightYellow,
+                Color::BrightBlue,
+                Color::BrightMagenta,
+                Color::BrightCyan,
+                Color::BrightWhite
+            ],
+            slices
         };
         gen.code.push(WriteSlice::Remainder(Vec::with_capacity(1024)));
         gen
@@ -79,9 +99,12 @@ impl<'a> Generator for SliceGenerator<'a> {
     }
 
     fn write_json(&mut self, json: &JsonValue) -> io::Result<()> {
-        if ptr::eq(json, self.slice) {
-            self.code.push(WriteSlice::Match(Vec::with_capacity(1024), Color::Red));
-        }
+        let match_index = self.slices.iter().position(|&slice|ptr::eq(json, slice));
+        if let Some(index) = match_index {
+            let next_color = self.colors.remove(0);
+            self.active_colors.push(next_color);
+            self.code.push(WriteSlice::Match(Vec::with_capacity(1024), next_color));
+        };
         let res = match *json {
             JsonValue::Null               => self.write(b"null"),
             JsonValue::Short(ref short)   => self.write_string(short.as_str()),
@@ -111,9 +134,13 @@ impl<'a> Generator for SliceGenerator<'a> {
                 self.write_object(object)
             }
         };
-        if ptr::eq(json, self.slice) {
-            self.code.push(WriteSlice::Remainder(Vec::with_capacity(1024)));
-        }
+        if let Some(index) = match_index {
+            self.active_colors.pop();
+            match self.active_colors.last() {
+                Some(color) => self.code.push(WriteSlice::Match(Vec::with_capacity(1024), *color)),
+                None => self.code.push(WriteSlice::Remainder(Vec::with_capacity(1024))),
+            };
+        };
         res
     }
 

@@ -17,7 +17,13 @@ pub fn main() {
           "bar" => json::Null,
           "answer" => 42,
           "list" => array![json::Null, "world", true]
-      }
+        },
+        "2ndobj" => object!{
+          "foo" => false,
+          "bar" => json::Null,
+          "answer" => 42,
+          "list" => array![json::Null, "world", true]
+        }
     };
 
     // match data {
@@ -25,9 +31,12 @@ pub fn main() {
     //   _ => ()
     // }
 
-    println!("{:#}",slice(&data, &data["obj"]));
-    println!("{:#}",slice(&data, &data["list"]));
-    println!("{:#}",slice(&data, &data["bar"]));
-    println!("{:#}",slice(&data, &data["foo"]));
-    println!("{:#}",slice(&data, &data["answer"]));
+    println!("{:#}",slice(&data, vec![&data["obj"], &data["2ndobj"]]));
+    println!("{:#}",slice(&data, vec![&data["obj"], &data["obj"]["list"]]));
+    println!("{:#}",slice(&data, vec![&data["2ndobj"]]));
+    println!("{:#}",slice(&data, vec![&data["list"]]));
+    println!("{:#}",slice(&data, vec![&data["bar"]]));
+    println!("{:#}",slice(&data, vec![&data["foo"]]));
+    println!("{:#}",slice(&data, vec![&data["answer"]]));
+    println!("{:#}",slice(&data, vec![&data["obj"]["list"]]));
 }

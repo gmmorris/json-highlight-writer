@@ -13,8 +13,8 @@ pub fn dump(json_object: Object) -> String {
     gen.consume()
 }
 
-pub fn slice(json_object: &JsonValue, slice: &JsonValue) -> String {
-    let mut gen = slice::SliceGenerator::new(1 ,slice);
+pub fn slice(json_object: &JsonValue, slices: Vec<&JsonValue>) -> String {
+    let mut gen = slice::SliceGenerator::new(1 ,slices);
     gen.write_json(json_object).expect("Can't fail");
     gen.consume()
 }
