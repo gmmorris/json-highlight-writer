@@ -1,4 +1,5 @@
 use json::object::{Object};
+use json::JsonValue;
 
 mod generator;
 mod dump;
@@ -12,9 +13,9 @@ pub fn dump(json_object: Object) -> String {
     gen.consume()
 }
 
-pub fn slice(json_object: Object) -> String {
-    let mut gen = slice::SliceGenerator::new(1);
-    gen.write_object(&json_object).expect("Can't fail");
+pub fn slice(json_object: &JsonValue, slice: &JsonValue) -> String {
+    let mut gen = slice::SliceGenerator::new(1 ,slice);
+    gen.write_json(json_object).expect("Can't fail");
     gen.consume()
 }
 

@@ -25,8 +25,5 @@ pub fn main() {
     //   _ => ()
     // }
 
-    match data {
-      JsonValue::Object(obj) => println!("{:#}",slice(obj)),
-      _ => ()
-    }
+    println!("{:#}",slice(&data, &data["obj"]))
 }
