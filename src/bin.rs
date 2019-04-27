@@ -25,5 +25,9 @@ pub fn main() {
     //   _ => ()
     // }
 
-    println!("{:#}",slice(&data, &data["obj"]))
+    println!("{:#}",slice(&data, &data["obj"]));
+    println!("{:#}",slice(&data, &data["list"]));
+    println!("{:#}",slice(&data, &data["bar"]));
+    println!("{:#}",slice(&data, &data["foo"]));
+    println!("{:#}",slice(&data, &data["answer"]));
 }

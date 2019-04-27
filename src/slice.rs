@@ -4,6 +4,7 @@ use json::JsonValue;
 use json::number::Number;
 use crate::generator::codegen::{Generator, extend_from_slice};
 use colored::*;
+use std::ptr;
 
 enum WriteSlice {
     Remainder(Vec<u8>),
@@ -78,7 +79,7 @@ impl<'a> Generator for SliceGenerator<'a> {
     }
 
     fn write_json(&mut self, json: &JsonValue) -> io::Result<()> {
-        if json == self.slice {
+        if ptr::eq(json, self.slice) {
             self.code.push(WriteSlice::Match(Vec::with_capacity(1024), Color::Red));
         }
         let res = match *json {
@@ -110,7 +111,7 @@ impl<'a> Generator for SliceGenerator<'a> {
                 self.write_object(object)
             }
         };
-        if json == self.slice {
+        if ptr::eq(json, self.slice) {
             self.code.push(WriteSlice::Remainder(Vec::with_capacity(1024)));
         }
         res
