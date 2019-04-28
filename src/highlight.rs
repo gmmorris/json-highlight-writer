@@ -1,21 +1,29 @@
 use std::io;
 use crate::generator::codegen::{Generator, extend_from_slice};
 
+enum WriteSlice {
+    Remainder(Vec<u8>)
+}
+
 pub struct HighlightGenerator {
-    code: Vec<u8>,
+    code: WriteSlice,
 }
 
 impl HighlightGenerator {
     pub fn new() -> Self {
         HighlightGenerator {
-            code: Vec::with_capacity(1024),
+            code: WriteSlice::Remainder(Vec::with_capacity(1024)),
         }
     }
 
-    pub fn consume(self) -> String {
+    pub fn consume(&mut self) -> String {
         // Original strings were unicode, numbers are all ASCII,
         // therefore this is safe.
-        unsafe { String::from_utf8_unchecked(self.code) }
+        match &self.code {
+          WriteSlice::Remainder(code) => unsafe {
+            String::from_utf8_unchecked(code.to_vec())
+          }
+        }
     }
 }
 
@@ -23,24 +31,26 @@ impl Generator for HighlightGenerator {
     type T = Vec<u8>;
 
     fn write(&mut self, slice: &[u8]) -> io::Result<()> {
-        extend_from_slice(&mut self.code, slice);
+        extend_from_slice(&mut self.get_writer(), slice);
         Ok(())
     }
 
     #[inline(always)]
     fn write_char(&mut self, ch: u8) -> io::Result<()> {
-        self.code.push(ch);
+        self.get_writer().push(ch);
         Ok(())
     }
 
     #[inline(always)]
     fn get_writer(&mut self) -> &mut Vec<u8> {
-        &mut self.code
+        match self.code {
+            WriteSlice::Remainder(ref mut code) => code
+        }
     }
 
     #[inline(always)]
     fn write_min(&mut self, _: &[u8], min: u8) -> io::Result<()> {
-        self.code.push(min);
+        self.get_writer().push(min);
         Ok(())
     }
 }
