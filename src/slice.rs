@@ -74,30 +74,6 @@ impl<'a> Generator for SliceGenerator<'a> {
         Ok(())
     }
 
-    #[inline(always)]
-    fn write_object(&mut self, object: &Object) -> io::Result<()> {
-        self.write_char(b'{')?;
-        let mut iter = object.iter();
-
-        if let Some((key, value)) = iter.next() {
-            self.write_string(key)?;
-            self.write_min(b": ", b':')?;
-            self.write_json(value)?;
-        } else {
-            self.write_char(b'}')?;
-            return Ok(());
-        }
-
-        for (key, value) in iter {
-            self.write_char(b',')?;
-            self.write_string(key)?;
-            self.write_min(b": ", b':')?;
-            self.write_json(value)?;
-        }
-
-        self.write_char(b'}')
-    }
-
     fn write_json(&mut self, json: &JsonValue) -> io::Result<()> {
         let match_index = self.slices.iter().position(|&slice|ptr::eq(json, slice));
         if let Some(index) = match_index {
