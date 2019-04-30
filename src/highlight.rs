@@ -4,19 +4,27 @@ use json::JsonValue;
 
 use crate::generator::codegen::{Generator, extend_from_slice};
 
+#[derive(Debug)]
 enum WriteSlice {
     Remainder(Vec<u8>)
 }
+impl PartialEq for WriteSlice {
+    fn eq(&self, other: &WriteSlice) -> bool {
+        match (self, other) {
+          (WriteSlice::Remainder(ref left), WriteSlice::Remainder(ref right)) => right == left
+        }
+    }
+}
 
 pub struct HighlightGenerator<'a> {
-    code: WriteSlice,
+    code: Vec<WriteSlice>,
     slices: Vec<&'a JsonValue>
 }
 
 impl<'a> HighlightGenerator<'a> {
     pub fn new() -> Self {
         HighlightGenerator {
-            code: WriteSlice::Remainder(Vec::with_capacity(1024)),
+            code: vec![WriteSlice::Remainder(Vec::with_capacity(1024))],
             slices: vec![]
         }
     }
@@ -24,10 +32,11 @@ impl<'a> HighlightGenerator<'a> {
     pub fn consume(&mut self) -> String {
         // Original strings were unicode, numbers are all ASCII,
         // therefore this is safe.
-        match &self.code {
-          WriteSlice::Remainder(code) => unsafe {
+        match &self.code.last_mut() {
+          Some(WriteSlice::Remainder(code)) => unsafe {
             String::from_utf8_unchecked(code.to_vec())
-          }
+          },
+          None => String::from("")
         }
     }
 
@@ -53,8 +62,9 @@ impl<'a> Generator for HighlightGenerator<'a> {
 
     #[inline(always)]
     fn get_writer(&mut self) -> &mut Vec<u8> {
-        match self.code {
-            WriteSlice::Remainder(ref mut code) => code
+        match self.code.last_mut() {
+            Some(WriteSlice::Remainder(ref mut code)) => code,
+            None => panic!("Internal Error: No writer")
         }
     }
 
@@ -62,6 +72,46 @@ impl<'a> Generator for HighlightGenerator<'a> {
     fn write_min(&mut self, _: &[u8], min: u8) -> io::Result<()> {
         self.get_writer().push(min);
         Ok(())
+    }
+
+    fn write_json(&mut self, json: &JsonValue) -> io::Result<()> {
+        let match_index = self.slices.iter().position(|&slice|ptr::eq(json, slice));
+        if let Some(_) = match_index {
+            self.code.push(WriteSlice::Remainder(Vec::with_capacity(1024)));
+        };
+        let inner_io = match *json {
+            JsonValue::Null               => self.write(b"null"),
+            JsonValue::Short(ref short)   => self.write_string(short.as_str()),
+            JsonValue::String(ref string) => self.write_string(string),
+            JsonValue::Number(ref number) => self.write_number(number),
+            JsonValue::Boolean(true)      => self.write(b"true"),
+            JsonValue::Boolean(false)     => self.write(b"false"),
+            JsonValue::Array(ref array)   => {
+                self.write_char(b'[')?;
+                let mut iter = array.iter();
+
+                if let Some(item) = iter.next() {
+                    self.write_json(item)?;
+                } else {
+                    self.write_char(b']')?;
+                    return Ok(());
+                }
+
+                for item in iter {
+                    self.write_char(b',')?;
+                    self.write_json(item)?;
+                }
+
+                self.write_char(b']')
+            },
+            JsonValue::Object(ref object) => {
+                self.write_object(object)
+            }
+        };
+        if let Some(_) = match_index {
+            self.code.push(WriteSlice::Remainder(Vec::with_capacity(1024)));
+        };
+        inner_io
     }
 }
 
@@ -88,6 +138,7 @@ mod tests {
       "answer" => 42,
       "list" => array![json::Null, "world", true]
     };
+
     let mut slices = vec![
       &input["bar"],
       &input["list"]
@@ -101,5 +152,46 @@ mod tests {
 
     assert!(ptr::eq(gen.slices[0], &input["bar"]));
     assert!(ptr::eq(gen.slices[1], &input["list"]));
+  }
+
+  #[test]
+  fn should_segment_slices() {
+    let input = object!{
+      "foo" => false,
+      "bar" => json::Null,
+      "answer" => 42,
+      "list" => array![json::Null, "world", true]
+    };
+    let mut slices = vec![
+      &input["list"]
+    ];
+
+    let mut gen = HighlightGenerator::new();
+
+    gen.write_json_with_highlight(
+      &input, &mut slices
+    ).expect("Can't fail");
+
+    assert_eq!(
+      gen.code[0],
+      WriteSlice::Remainder(
+        "{\"foo\":false,\"bar\":null,\"answer\":42,\"list\":"
+        .as_bytes().to_vec()
+      )
+    );
+    assert_eq!(
+      gen.code[1],
+      WriteSlice::Remainder(
+        "[null,\"world\",true]"
+        .as_bytes().to_vec()
+      )
+    );
+    assert_eq!(
+      gen.code[2],
+      WriteSlice::Remainder(
+        "}"
+        .as_bytes().to_vec()
+      )
+    );
   }
 }
