@@ -8,6 +8,7 @@ use crate::generator::codegen::{Generator, extend_from_slice};
 enum WriteSlice {
     Remainder(Vec<u8>)
 }
+
 impl PartialEq for WriteSlice {
     fn eq(&self, other: &WriteSlice) -> bool {
         match (self, other) {
@@ -43,6 +44,29 @@ impl<'a> HighlightGenerator<'a> {
     pub fn write_json_with_highlight(&mut self, json: &JsonValue, slices: &mut Vec<&'a JsonValue>) -> io::Result<()> {
       self.slices.append(slices);
       self.write_json(json)
+    }
+
+    fn segment(&mut self) {
+      self.code.push(WriteSlice::Remainder(Vec::with_capacity(1024)));
+    }
+
+    fn write_array(&mut self, array: &Vec<JsonValue>) -> io::Result<()> {
+        self.write_char(b'[')?;
+        let mut iter = array.iter();
+
+        if let Some(item) = iter.next() {
+            self.write_json(item)?;
+        } else {
+            self.write_char(b']')?;
+            return Ok(());
+        }
+
+        for item in iter {
+            self.write_char(b',')?;
+            self.write_json(item)?;
+        }
+
+        self.write_char(b']')
     }
 }
 
@@ -80,7 +104,7 @@ impl<'a> Generator for HighlightGenerator<'a> {
     fn write_json(&mut self, json: &JsonValue) -> io::Result<()> {
         let match_index = self.slices.iter().position(|&slice|ptr::eq(json, slice));
         if let Some(_) = match_index {
-            self.code.push(WriteSlice::Remainder(Vec::with_capacity(1024)));
+            self.segment();
         };
         let inner_io = match *json {
             JsonValue::Null               => self.write(b"null"),
@@ -90,29 +114,14 @@ impl<'a> Generator for HighlightGenerator<'a> {
             JsonValue::Boolean(true)      => self.write(b"true"),
             JsonValue::Boolean(false)     => self.write(b"false"),
             JsonValue::Array(ref array)   => {
-                self.write_char(b'[')?;
-                let mut iter = array.iter();
-
-                if let Some(item) = iter.next() {
-                    self.write_json(item)?;
-                } else {
-                    self.write_char(b']')?;
-                    return Ok(());
-                }
-
-                for item in iter {
-                    self.write_char(b',')?;
-                    self.write_json(item)?;
-                }
-
-                self.write_char(b']')
+                self.write_array(array)
             },
             JsonValue::Object(ref object) => {
                 self.write_object(object)
             }
         };
         if let Some(_) = match_index {
-            self.code.push(WriteSlice::Remainder(Vec::with_capacity(1024)));
+            self.segment();
         };
         inner_io
     }
