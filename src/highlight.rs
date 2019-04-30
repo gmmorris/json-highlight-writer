@@ -6,13 +6,16 @@ use crate::generator::codegen::{Generator, extend_from_slice};
 
 #[derive(Debug)]
 enum WriteSlice {
-    Remainder(Vec<u8>)
+    Remainder(Vec<u8>),
+    Match(Vec<u8>)
 }
 
 impl PartialEq for WriteSlice {
     fn eq(&self, other: &WriteSlice) -> bool {
         match (self, other) {
-          (WriteSlice::Remainder(ref left), WriteSlice::Remainder(ref right)) => right == left
+          (WriteSlice::Remainder(ref left), WriteSlice::Remainder(ref right)) => right == left,
+          (WriteSlice::Match(ref left), WriteSlice::Match(ref right)) => right == left,
+          (_, _) => false
         }
     }
 }
@@ -34,7 +37,7 @@ impl<'a> HighlightGenerator<'a> {
         // Original strings were unicode, numbers are all ASCII,
         // therefore this is safe.
         match &self.code.last_mut() {
-          Some(WriteSlice::Remainder(code)) => unsafe {
+          Some(WriteSlice::Remainder(code)) | Some(WriteSlice::Match(code)) => unsafe {
             String::from_utf8_unchecked(code.to_vec())
           },
           None => String::from("")
@@ -48,6 +51,10 @@ impl<'a> HighlightGenerator<'a> {
 
     fn segment(&mut self) {
       self.code.push(WriteSlice::Remainder(Vec::with_capacity(1024)));
+    }
+
+    fn match_segment(&mut self) {
+      self.code.push(WriteSlice::Match(Vec::with_capacity(1024)));
     }
 
     fn write_array(&mut self, array: &Vec<JsonValue>) -> io::Result<()> {
@@ -91,6 +98,7 @@ impl<'a> Generator for HighlightGenerator<'a> {
         };
         match self.code.last_mut() {
             Some(WriteSlice::Remainder(ref mut code)) => code,
+            Some(WriteSlice::Match(ref mut code)) => code,
             None => panic!("Internal Error: No writer")
         }
     }
@@ -104,7 +112,7 @@ impl<'a> Generator for HighlightGenerator<'a> {
     fn write_json(&mut self, json: &JsonValue) -> io::Result<()> {
         let match_index = self.slices.iter().position(|&slice|ptr::eq(json, slice));
         if let Some(_) = match_index {
-            self.segment();
+            self.match_segment();
         };
         let inner_io = match *json {
             JsonValue::Null               => self.write(b"null"),
@@ -193,7 +201,7 @@ mod tests {
     );
     assert_eq!(
       gen.code[1],
-      WriteSlice::Remainder(
+      WriteSlice::Match(
         "[null,\"world\",true]"
         .as_bytes().to_vec()
       )
@@ -227,7 +235,7 @@ mod tests {
 
     assert_eq!(
       gen.code[0],
-      WriteSlice::Remainder(
+      WriteSlice::Match(
         "{\"foo\":false,\"bar\":null,\"answer\":42,\"list\":[null,\"world\",true]}"
         .as_bytes().to_vec()
       )
