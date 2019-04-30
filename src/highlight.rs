@@ -41,14 +41,19 @@ impl<'a> HighlightGenerator<'a> {
     }
 
     pub fn consume(&mut self) -> String {
-        // Original strings were unicode, numbers are all ASCII,
-        // therefore this is safe.
-        match &self.code.last_mut() {
-          Some(WriteSlice::Remainder(code)) | Some(WriteSlice::Match(code, _)) => unsafe {
-            String::from_utf8_unchecked(code.to_vec())
-          },
-          None => String::from("")
-        }
+        let slices : Vec<String> = self.code.iter()
+            .map(|slice| match slice {
+                // Original strings were unicode, numbers are all ASCII,
+                // therefore this is safe.
+                WriteSlice::Match(code, color) => {
+                    unsafe { String::from_utf8_unchecked(code.to_vec()).color(*color).to_string() }
+                },
+                WriteSlice::Remainder(code) => {
+                    unsafe { String::from_utf8_unchecked(code.to_vec()) }
+                }
+            })
+            .collect();
+        slices.join("")
     }
 
     pub fn write_json_with_highlight(&mut self, json: &JsonValue, slices: &mut Vec<&'a JsonValue>) -> io::Result<()> {
@@ -254,6 +259,36 @@ mod tests {
         .as_bytes().to_vec(),
         Color::Red
       )
+    );
+  }
+
+  #[test]
+  fn should_highlight_a_single_match() {
+      let input = object!{
+        "foo" => false,
+        "bar" => json::Null,
+        "answer" => 42,
+        "list" => array![json::Null, "world", true]
+      };
+
+      let mut slices = vec![
+        &input["list"]
+      ];
+
+      let mut gen = HighlightGenerator::new();
+
+      gen.write_json_with_highlight(
+        &input, &mut slices
+      ).expect("Can't fail");
+
+    assert_eq!(
+      gen.consume(),
+      format!(
+        "{}{}{}",
+        r#"{"foo":false,"bar":null,"answer":42,"list":"#,
+        r#"[null,"world",true]"#.red(),
+        r#"}"#
+      )      
     );
   }
 }
