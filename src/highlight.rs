@@ -24,7 +24,7 @@ pub struct HighlightGenerator<'a> {
 impl<'a> HighlightGenerator<'a> {
     pub fn new() -> Self {
         HighlightGenerator {
-            code: vec![WriteSlice::Remainder(Vec::with_capacity(1024))],
+            code: vec![],
             slices: vec![]
         }
     }
@@ -62,6 +62,9 @@ impl<'a> Generator for HighlightGenerator<'a> {
 
     #[inline(always)]
     fn get_writer(&mut self) -> &mut Vec<u8> {
+        if self.code.is_empty() {
+          self.code.push(WriteSlice::Remainder(Vec::with_capacity(1024)));
+        };
         match self.code.last_mut() {
             Some(WriteSlice::Remainder(ref mut code)) => code,
             None => panic!("Internal Error: No writer")
@@ -190,6 +193,33 @@ mod tests {
       gen.code[2],
       WriteSlice::Remainder(
         "}"
+        .as_bytes().to_vec()
+      )
+    );
+  }
+
+  #[test]
+  fn should_segment_a_root_slice() {
+    let input = object!{
+      "foo" => false,
+      "bar" => json::Null,
+      "answer" => 42,
+      "list" => array![json::Null, "world", true]
+    };
+    let mut slices = vec![
+      &input
+    ];
+
+    let mut gen = HighlightGenerator::new();
+
+    gen.write_json_with_highlight(
+      &input, &mut slices
+    ).expect("Can't fail");
+
+    assert_eq!(
+      gen.code[0],
+      WriteSlice::Remainder(
+        "{\"foo\":false,\"bar\":null,\"answer\":42,\"list\":[null,\"world\",true]}"
         .as_bytes().to_vec()
       )
     );
