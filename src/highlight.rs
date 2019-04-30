@@ -3,16 +3,14 @@ use std::ptr;
 use json::JsonValue;
 use colored::*;
 
+use crate::highlight_color::{HighlightColor, SingleColor};
+
 use crate::generator::codegen::{Generator, extend_from_slice};
 
 #[derive(Debug)]
 enum WriteSlice {
     Remainder(Vec<u8>),
     Match(Vec<u8>, Color)
-}
-
-enum HighlightColor {
-  SingleColor(Color)
 }
 
 impl PartialEq for WriteSlice {
@@ -28,7 +26,7 @@ impl PartialEq for WriteSlice {
 pub struct HighlightGenerator<'a> {
     code: Vec<WriteSlice>,
     slices: Vec<&'a JsonValue>,
-    color: HighlightColor
+    color: SingleColor
 }
 
 impl<'a> HighlightGenerator<'a> {
@@ -36,7 +34,7 @@ impl<'a> HighlightGenerator<'a> {
         HighlightGenerator {
             code: vec![],
             slices: vec![],
-            color: HighlightColor::SingleColor(Color::Red)
+            color: SingleColor::new()
         }
     }
 
@@ -70,9 +68,7 @@ impl<'a> HighlightGenerator<'a> {
     }
 
     fn get_color(&self) -> Color {
-      match self.color {
-        HighlightColor::SingleColor(color) => color
-      }
+      self.color.get_color()
     }
 
     fn write_array(&mut self, array: &Vec<JsonValue>) -> io::Result<()> {
