@@ -1,20 +1,25 @@
 use std::io;
 use std::ptr;
 use json::JsonValue;
+use colored::*;
 
 use crate::generator::codegen::{Generator, extend_from_slice};
 
 #[derive(Debug)]
 enum WriteSlice {
     Remainder(Vec<u8>),
-    Match(Vec<u8>)
+    Match(Vec<u8>, Color)
+}
+
+enum HighlightColor {
+  SingleColor(Color)
 }
 
 impl PartialEq for WriteSlice {
     fn eq(&self, other: &WriteSlice) -> bool {
         match (self, other) {
           (WriteSlice::Remainder(ref left), WriteSlice::Remainder(ref right)) => right == left,
-          (WriteSlice::Match(ref left), WriteSlice::Match(ref right)) => right == left,
+          (WriteSlice::Match(ref left, ref lcolor), WriteSlice::Match(ref right, ref rcolor)) => right == left && rcolor == lcolor,
           (_, _) => false
         }
     }
@@ -22,14 +27,16 @@ impl PartialEq for WriteSlice {
 
 pub struct HighlightGenerator<'a> {
     code: Vec<WriteSlice>,
-    slices: Vec<&'a JsonValue>
+    slices: Vec<&'a JsonValue>,
+    color: HighlightColor
 }
 
 impl<'a> HighlightGenerator<'a> {
     pub fn new() -> Self {
         HighlightGenerator {
             code: vec![],
-            slices: vec![]
+            slices: vec![],
+            color: HighlightColor::SingleColor(Color::Red)
         }
     }
 
@@ -37,7 +44,7 @@ impl<'a> HighlightGenerator<'a> {
         // Original strings were unicode, numbers are all ASCII,
         // therefore this is safe.
         match &self.code.last_mut() {
-          Some(WriteSlice::Remainder(code)) | Some(WriteSlice::Match(code)) => unsafe {
+          Some(WriteSlice::Remainder(code)) | Some(WriteSlice::Match(code, _)) => unsafe {
             String::from_utf8_unchecked(code.to_vec())
           },
           None => String::from("")
@@ -54,7 +61,13 @@ impl<'a> HighlightGenerator<'a> {
     }
 
     fn match_segment(&mut self) {
-      self.code.push(WriteSlice::Match(Vec::with_capacity(1024)));
+      self.code.push(WriteSlice::Match(Vec::with_capacity(1024), self.get_color()));
+    }
+
+    fn get_color(&self) -> Color {
+      match self.color {
+        HighlightColor::SingleColor(color) => color
+      }
     }
 
     fn write_array(&mut self, array: &Vec<JsonValue>) -> io::Result<()> {
@@ -98,7 +111,7 @@ impl<'a> Generator for HighlightGenerator<'a> {
         };
         match self.code.last_mut() {
             Some(WriteSlice::Remainder(ref mut code)) => code,
-            Some(WriteSlice::Match(ref mut code)) => code,
+            Some(WriteSlice::Match(ref mut code, _)) => code,
             None => panic!("Internal Error: No writer")
         }
     }
@@ -203,7 +216,8 @@ mod tests {
       gen.code[1],
       WriteSlice::Match(
         "[null,\"world\",true]"
-        .as_bytes().to_vec()
+        .as_bytes().to_vec(),
+        Color::Red
       )
     );
     assert_eq!(
@@ -237,7 +251,8 @@ mod tests {
       gen.code[0],
       WriteSlice::Match(
         "{\"foo\":false,\"bar\":null,\"answer\":42,\"list\":[null,\"world\",true]}"
-        .as_bytes().to_vec()
+        .as_bytes().to_vec(),
+        Color::Red
       )
     );
   }
