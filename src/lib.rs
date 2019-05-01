@@ -1,49 +1,25 @@
 use json::object::{Object};
 use json::JsonValue;
+use colored::*;
 
 mod generator;
-mod dump;
-mod slice;
+mod highlight_color;
+mod highlight;
 
 use crate::generator::codegen::Generator;
 
-pub fn dump(json_object: Object) -> String {
-    let mut gen = dump::DumpGenerator::new();
-    gen.write_object(&json_object).expect("Can't fail");
+pub fn highlight(json_object: &JsonValue, mut slices: Vec<&JsonValue>) -> String {
+    let mut gen = highlight::HighlightGenerator::new();
+    gen.write_json_with_highlight(
+      json_object, &mut slices
+    ).expect("Can't fail");
     gen.consume()
 }
 
-pub fn slice(json_object: &JsonValue, slices: Vec<&JsonValue>) -> String {
-    let mut gen = slice::SliceGenerator::new(1 ,slices);
-    gen.write_json(json_object).expect("Can't fail");
+pub fn highlight_with_colors(json_object: &JsonValue, mut slices: Vec<&JsonValue>, colors: Vec<Color>) -> String {
+    let mut gen = highlight::HighlightGenerator::new_with_colors(colors);
+    gen.write_json_with_highlight(
+      json_object, &mut slices
+    ).expect("Can't fail");
     gen.consume()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use json::*;
-    
-    #[test]
-    fn dump_should_work_as_expected() {
-        let data = object!{
-            "foo" => false,
-            "bar" => json::Null,
-            "answer" => 42,
-            "list" => array![json::Null, "world", true],
-            "obj" => object!{
-                "foo" => false,
-                "bar" => json::Null,
-                "answer" => 42,
-                "list" => array![json::Null, "world", true]
-            }
-        };
-
-        let expected_json = r#"{"foo":false,"bar":null,"answer":42,"list":[null,"world",true],"obj":{"foo":false,"bar":null,"answer":42,"list":[null,"world",true]}}"#;
-
-        match data {
-            JsonValue::Object(obj) => assert_eq!(dump(obj),expected_json),
-            _ => panic!("Invalid result")
-        }
-    }
 }

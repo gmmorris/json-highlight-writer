@@ -1,5 +1,5 @@
 [package]
-name = "json-slice-writer"
+name = "json-highlight-writer"
 version = "0.1.0"
 authors = ["Gidi Meir Morris <gidi@gidi.io>"]
 edition = "2018"
@@ -8,7 +8,7 @@ license = "MIT"
 
 
 [lib]
-name = "json_slice_writer"
+name = "json_highlight_writer"
 path = "src/lib.rs"
 
 [[bin]]

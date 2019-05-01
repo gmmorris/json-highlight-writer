@@ -67,18 +67,25 @@ impl<'a> HighlightGenerator<'a> {
       self.write_json(json)
     }
 
-    fn segment(&mut self) {
-      self.code.push(WriteSlice::Remainder(Vec::with_capacity(1024)));
+    fn current_color(&self) -> Option<Color> {
+      match self.code.last() {
+        Some(WriteSlice::Match(_, ref color)) => Some(color.clone()),
+        _ => None
+      }
+    }
+
+    fn segment(&mut self, color : Option<Color>) {
+      self.code.push(
+        match color {
+          Some(color) => WriteSlice::Match(Vec::with_capacity(1024), color),
+          None => WriteSlice::Remainder(Vec::with_capacity(1024))
+        }
+      );
     }
 
     fn match_segment(&mut self) {
       let color = self.get_color();
-      self.code.push(
-        WriteSlice::Match(
-          Vec::with_capacity(1024),
-          color
-        )
-      );
+      self.segment(Some(color));
     }
 
     fn get_color(&mut self) -> Color {
@@ -139,9 +146,11 @@ impl<'a> Generator for HighlightGenerator<'a> {
 
     fn write_json(&mut self, json: &JsonValue) -> io::Result<()> {
         let match_index = self.slices.iter().position(|&slice|ptr::eq(json, slice));
+        let current_color = self.current_color();
         if let Some(_) = match_index {
             self.match_segment();
         };
+
         let inner_io = match *json {
             JsonValue::Null               => self.write(b"null"),
             JsonValue::Short(ref short)   => self.write_string(short.as_str()),
@@ -156,8 +165,9 @@ impl<'a> Generator for HighlightGenerator<'a> {
                 self.write_object(object)
             }
         };
+        
         if let Some(_) = match_index {
-            self.segment();
+            self.segment(current_color);
         };
         inner_io
     }
@@ -364,6 +374,37 @@ mod tests {
         r#","answer":42,"list":"#,
         r#"[null,"world",true]"#.green(),
         r#"}"#
+      )      
+    );
+  }
+
+  #[test]
+  fn should_highlight_inner_matches() {
+      let input = object!{
+        "foo" => false,
+        "bar" => json::Null,
+        "answer" => 42,
+        "list" => array![json::Null, "world", true]
+      };
+
+      let mut slices = vec![
+        &input,
+        &input["list"]
+      ];
+
+      let mut gen = HighlightGenerator::new_with_colors(vec![Color::Red, Color::Green]);
+
+      gen.write_json_with_highlight(
+        &input, &mut slices
+      ).expect("Can't fail");
+
+    assert_eq!(
+      gen.consume(),
+      format!(
+        "{}{}{}",
+        r#"{"foo":false,"bar":null,"answer":42,"list":"#.red(),
+        r#"[null,"world",true]"#.green(),
+        r#"}"#.red()
       )      
     );
   }

@@ -1,10 +1,10 @@
-extern crate json_slice_writer;
+extern crate json_highlight_writer;
 extern crate colored;
     
-// use colored::*;
+use colored::*;
 use json::*;
 
-use json_slice_writer::{dump, slice};
+use json_highlight_writer::{highlight_with_colors, highlight};
 
 pub fn main() {
     let data = object!{
@@ -26,17 +26,23 @@ pub fn main() {
         }
     };
 
-    // match data {
-    //   JsonValue::Object(obj) => println!("{:#}",dump(obj)),
-    //   _ => ()
-    // }
+    println!("{:#}",highlight_with_colors(&data, vec![&data["obj"], &data["2ndobj"]], vec![Color::Yellow, Color::Cyan]));
+    println!("{:#}",highlight_with_colors(&data, vec![&data["obj"], &data["obj"]["list"]], vec![Color::Yellow, Color::Cyan]));
+    println!("{:#}",highlight_with_colors(&data, vec![&data["2ndobj"]], vec![Color::Yellow, Color::Cyan]));
+    println!("{:#}",highlight_with_colors(&data, vec![&data["list"]], vec![Color::Yellow, Color::Cyan]));
+    println!("{:#}",highlight_with_colors(&data, vec![&data["bar"]], vec![Color::Yellow, Color::Cyan]));
+    println!("{:#}",highlight_with_colors(&data, vec![&data["foo"]], vec![Color::Yellow, Color::Cyan]));
+    println!("{:#}",highlight_with_colors(&data, vec![&data["answer"]], vec![Color::Yellow, Color::Cyan]));
+    println!("{:#}",highlight_with_colors(&data, vec![&data["obj"]["list"]], vec![Color::Yellow, Color::Cyan]));
 
-    println!("{:#}",slice(&data, vec![&data["obj"], &data["2ndobj"]]));
-    println!("{:#}",slice(&data, vec![&data["obj"], &data["obj"]["list"]]));
-    println!("{:#}",slice(&data, vec![&data["2ndobj"]]));
-    println!("{:#}",slice(&data, vec![&data["list"]]));
-    println!("{:#}",slice(&data, vec![&data["bar"]]));
-    println!("{:#}",slice(&data, vec![&data["foo"]]));
-    println!("{:#}",slice(&data, vec![&data["answer"]]));
-    println!("{:#}",slice(&data, vec![&data["obj"]["list"]]));
+    println!("-------------");
+
+    println!("{:#}",highlight(&data, vec![&data["obj"], &data["2ndobj"]]));
+    println!("{:#}",highlight(&data, vec![&data["obj"], &data["obj"]["list"]]));
+    println!("{:#}",highlight(&data, vec![&data["2ndobj"]]));
+    println!("{:#}",highlight(&data, vec![&data["list"]]));
+    println!("{:#}",highlight(&data, vec![&data["bar"]]));
+    println!("{:#}",highlight(&data, vec![&data["foo"]]));
+    println!("{:#}",highlight(&data, vec![&data["answer"]]));
+    println!("{:#}",highlight(&data, vec![&data["obj"]["list"]]));
 }
