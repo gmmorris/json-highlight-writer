@@ -3,7 +3,7 @@ use std::ptr;
 use json::JsonValue;
 use colored::*;
 
-use crate::highlight_color::{HighlightColor, SingleColor};
+use crate::highlight_color::{HighlightColor, SingleColor, CycledColors};
 
 use crate::generator::codegen::{Generator, extend_from_slice};
 
@@ -26,7 +26,7 @@ impl PartialEq for WriteSlice {
 pub struct HighlightGenerator<'a> {
     code: Vec<WriteSlice>,
     slices: Vec<&'a JsonValue>,
-    color: SingleColor
+    color: Box<HighlightColor>
 }
 
 impl<'a> HighlightGenerator<'a> {
@@ -34,7 +34,15 @@ impl<'a> HighlightGenerator<'a> {
         HighlightGenerator {
             code: vec![],
             slices: vec![],
-            color: SingleColor::new()
+            color: Box::new(SingleColor::new())
+        }
+    }
+
+    pub fn new_with_colors(colors: Vec<Color>) -> Self {
+        HighlightGenerator {
+            code: vec![],
+            slices: vec![],
+            color: Box::new(CycledColors::new(colors))
         }
     }
 
@@ -64,10 +72,16 @@ impl<'a> HighlightGenerator<'a> {
     }
 
     fn match_segment(&mut self) {
-      self.code.push(WriteSlice::Match(Vec::with_capacity(1024), self.get_color()));
+      let color = self.get_color();
+      self.code.push(
+        WriteSlice::Match(
+          Vec::with_capacity(1024),
+          color
+        )
+      );
     }
 
-    fn get_color(&self) -> Color {
+    fn get_color(&mut self) -> Color {
       self.color.get_color()
     }
 
@@ -283,6 +297,72 @@ mod tests {
         "{}{}{}",
         r#"{"foo":false,"bar":null,"answer":42,"list":"#,
         r#"[null,"world",true]"#.red(),
+        r#"}"#
+      )      
+    );
+  }
+
+  #[test]
+  fn should_highlight_multiple_matchs() {
+      let input = object!{
+        "foo" => false,
+        "bar" => json::Null,
+        "answer" => 42,
+        "list" => array![json::Null, "world", true]
+      };
+
+      let mut slices = vec![
+        &input["bar"],
+        &input["list"]
+      ];
+
+      let mut gen = HighlightGenerator::new();
+
+      gen.write_json_with_highlight(
+        &input, &mut slices
+      ).expect("Can't fail");
+
+    assert_eq!(
+      gen.consume(),
+      format!(
+        "{}{}{}{}{}",
+        r#"{"foo":false,"bar":"#,
+        r#"null"#.red(),
+        r#","answer":42,"list":"#,
+        r#"[null,"world",true]"#.red(),
+        r#"}"#
+      )      
+    );
+  }
+
+  #[test]
+  fn should_highlight_multiple_matchs_with_cycled_colors() {
+      let input = object!{
+        "foo" => false,
+        "bar" => json::Null,
+        "answer" => 42,
+        "list" => array![json::Null, "world", true]
+      };
+
+      let mut slices = vec![
+        &input["bar"],
+        &input["list"]
+      ];
+
+      let mut gen = HighlightGenerator::new_with_colors(vec![Color::Red, Color::Green]);
+
+      gen.write_json_with_highlight(
+        &input, &mut slices
+      ).expect("Can't fail");
+
+    assert_eq!(
+      gen.consume(),
+      format!(
+        "{}{}{}{}{}",
+        r#"{"foo":false,"bar":"#,
+        r#"null"#.red(),
+        r#","answer":42,"list":"#,
+        r#"[null,"world",true]"#.green(),
         r#"}"#
       )      
     );
