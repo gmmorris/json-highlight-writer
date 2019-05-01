@@ -32,6 +32,7 @@ println!("{:#}", highlight(&res, vec![&res["payload"]["features"]]));
 
 This code will print out the entire JSON structure with the array of features highlighted in red.
 
+![Single Color Matches](../blob/master/assets/single.png?raw=true)
 
 ### highlight_with_colors
 
@@ -46,6 +47,7 @@ println!("{:#}", highlight_with_colors(&res, vec![&res["payload"], &res["payload
 This code will print out the entire JSON structure twice, with the slices highlighted in red, the green.
 Note the inner color highlighting which is used to display matching slices in different colors if a matched slice resides inside of another matched slice.
 
+![Multiple Color Matches](../blob/master/assets/multiple.png?raw=true)
 
 If there are more slices than there are specified colors the highlighting will cycle back through the vector.
 
@@ -53,4 +55,5 @@ If there are more slices than there are specified colors the highlighting will c
 println!("{:#}", highlight_with_colors(&res, vec![&res["code"], &res["payload"], &res["payload"]["features"]], vec![Color::Red, Color::Green]));
 ```
 
+![Overlapping Matches](../blob/master/assets/overlap.png?raw=true)
 
