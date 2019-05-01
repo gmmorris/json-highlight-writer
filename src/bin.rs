@@ -1,12 +1,36 @@
-extern crate json_highlight_writer;
-extern crate colored;
-    
 use colored::*;
 use json::*;
 
 use json_highlight_writer::{highlight_with_colors, highlight};
 
 pub fn main() {
+  let res = object!{
+    "code" => 200,
+    "success" => true,
+    "payload" => object!{
+        "features" => array![
+            "awesome",
+            "easyAPI",
+            "lowLearningCurve"
+        ]
+    }
+};
+
+    println!("");
+    println!("");
+    println!("{:#}", highlight(&res, vec![&res["code"], &res["payload"]["features"]]));
+    println!("");
+    println!("");
+    println!("{:#}", highlight_with_colors(&res, vec![&res["code"], &res["payload"]["features"]], vec![Color::Red, Color::Green]));
+    println!("");
+    println!("");
+    println!("{:#}", highlight_with_colors(&res, vec![&res["payload"], &res["payload"]["features"]], vec![Color::Red, Color::Green]));
+    println!("");
+    println!("");
+    println!("{:#}", highlight_with_colors(&res, vec![&res["code"], &res["payload"], &res["payload"]["features"]], vec![Color::Red, Color::Green]));
+    println!("");
+    println!("");
+
     let data = object!{
         "foo" => false,
         "bar" => json::Null,
