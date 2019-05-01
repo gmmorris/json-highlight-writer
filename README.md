@@ -27,10 +27,10 @@ let res = object!{
     }
 };
 
-println!("{:#}", highlight(&res, vec![&res["payload"]["features"]]));
+println!("{:#}", highlight(&res, vec![&res["code"], &res["payload"]["features"]]));
 ```
 
-This code will print out the entire JSON structure with the array of features highlighted in red.
+This code will print out the entire JSON structure with the code field and array of features highlighted in red.
 
 ![Single Color Matches](../master/assets/single.png?raw=true)
 
