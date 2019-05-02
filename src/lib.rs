@@ -1,12 +1,9 @@
-use json::object::{Object};
 use json::JsonValue;
 use colored::*;
 
 mod generator;
 mod highlight_color;
 mod highlight;
-
-use crate::generator::codegen::Generator;
 
 pub fn highlight(json_object: &JsonValue, mut slices: Vec<&JsonValue>) -> String {
     let mut gen = highlight::HighlightGenerator::new();
