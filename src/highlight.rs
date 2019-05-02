@@ -26,7 +26,8 @@ impl PartialEq for WriteSlice {
 pub struct HighlightGenerator<'a> {
     code: Vec<WriteSlice>,
     slices: Vec<&'a JsonValue>,
-    color: Box<HighlightColor>
+    color: Box<HighlightColor>,
+    remainder_color: Option<Color>
 }
 
 impl<'a> HighlightGenerator<'a> {
@@ -34,27 +35,32 @@ impl<'a> HighlightGenerator<'a> {
         HighlightGenerator {
             code: vec![],
             slices: vec![],
-            color: Box::new(SingleColor::new())
+            color: Box::new(SingleColor::new()),
+            remainder_color: None
         }
     }
 
-    pub fn new_with_colors(colors: Vec<Color>) -> Self {
+    pub fn new_with_colors(colors: Option<Vec<Color>>, remainder_color: Option<Color>) -> Self {
         HighlightGenerator {
             code: vec![],
             slices: vec![],
-            color: Box::new(CycledColors::new(colors))
+            color: match colors {
+              Some(colors) => Box::new(CycledColors::new(colors)),
+              None => Box::new(SingleColor::new())
+            },
+            remainder_color
         }
     }
 
     pub fn consume(&mut self) -> String {
         let slices : Vec<String> = self.code.iter()
-            .map(|slice| match slice {
+            .map(|slice| match (slice, self.remainder_color) {
                 // Original strings were unicode, numbers are all ASCII,
                 // therefore this is safe.
-                WriteSlice::Match(code, color) => {
+                (WriteSlice::Match(code, ref color),_) | (WriteSlice::Remainder(code), Some(ref color)) => {
                     unsafe { String::from_utf8_unchecked(code.to_vec()).color(*color).to_string() }
                 },
-                WriteSlice::Remainder(code) => {
+                (WriteSlice::Remainder(code), None) => {
                     unsafe { String::from_utf8_unchecked(code.to_vec()) }
                 }
             })
@@ -313,6 +319,36 @@ mod tests {
   }
 
   #[test]
+  fn should_highlight_remainder() {
+      let input = object!{
+        "foo" => false,
+        "bar" => json::Null,
+        "answer" => 42,
+        "list" => array![json::Null, "world", true]
+      };
+
+      let mut slices = vec![
+        &input["list"]
+      ];
+
+      let mut gen = HighlightGenerator::new_with_colors(None, Some(Color::White));
+
+      gen.write_json_with_highlight(
+        &input, &mut slices
+      ).expect("Can't fail");
+
+    assert_eq!(
+      gen.consume(),
+      format!(
+        "{}{}{}",
+        r#"{"foo":false,"bar":null,"answer":42,"list":"#.white(),
+        r#"[null,"world",true]"#.red(),
+        r#"}"#.white()
+      )
+    );
+  }
+
+  #[test]
   fn should_highlight_multiple_matchs() {
       let input = object!{
         "foo" => false,
@@ -359,7 +395,7 @@ mod tests {
         &input["list"]
       ];
 
-      let mut gen = HighlightGenerator::new_with_colors(vec![Color::Red, Color::Green]);
+      let mut gen = HighlightGenerator::new_with_colors(Some(vec![Color::Red, Color::Green]), None);
 
       gen.write_json_with_highlight(
         &input, &mut slices
@@ -392,7 +428,7 @@ mod tests {
         &input["list"]
       ];
 
-      let mut gen = HighlightGenerator::new_with_colors(vec![Color::Red, Color::Green]);
+      let mut gen = HighlightGenerator::new_with_colors(Some(vec![Color::Red, Color::Green]), None);
 
       gen.write_json_with_highlight(
         &input, &mut slices

@@ -13,8 +13,8 @@ pub fn highlight(json_object: &JsonValue, mut slices: Vec<&JsonValue>) -> String
     gen.consume()
 }
 
-pub fn highlight_with_colors(json_object: &JsonValue, mut slices: Vec<&JsonValue>, colors: Vec<Color>) -> String {
-    let mut gen = highlight::HighlightGenerator::new_with_colors(colors);
+pub fn highlight_with_colors(json_object: &JsonValue, mut slices: Vec<&JsonValue>, colors: Option<Vec<Color>>, remainder_color: Option<Color>) -> String {
+    let mut gen = highlight::HighlightGenerator::new_with_colors(colors, remainder_color);
     gen.write_json_with_highlight(
       json_object, &mut slices
     ).expect("Can't fail");

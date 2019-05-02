@@ -39,9 +39,9 @@ This code will print out the entire JSON structure with the code field and array
 _highlight_with_colors_ takes a JSON object, a vector of slices you wish to highlight and a vector of colors to cycle through when matching slices.
 
 ```rust
-println!("{:#}", highlight_with_colors(&res, vec![&res["code"], &res["payload"]["features"]], vec![Color::Red, Color::Green]));
+println!("{:#}", highlight_with_colors(&res, vec![&res["code"], &res["payload"]["features"]], Some(vec![Color::Red, Color::Green]), None));
 
-println!("{:#}", highlight_with_colors(&res, vec![&res["payload"], &res["payload"]["features"]], vec![Color::Red, Color::Green]));
+println!("{:#}", highlight_with_colors(&res, vec![&res["payload"], &res["payload"]["features"]], Some(vec![Color::Red, Color::Green]), None));
 ```
 
 This code will print out the entire JSON structure twice, with the slices highlighted in red, the green.
@@ -52,7 +52,13 @@ Note the inner color highlighting which is used to display matching slices in di
 If there are more slices than there are specified colors the highlighting will cycle back through the vector.
 
 ```rust
-println!("{:#}", highlight_with_colors(&res, vec![&res["code"], &res["payload"], &res["payload"]["features"]], vec![Color::Red, Color::Green]));
+println!("{:#}", highlight_with_colors(&res, vec![&res["code"], &res["payload"], &res["payload"]["features"]], Some(vec![Color::Red, Color::Green]), None));
+```
+
+_highlight_with_colors_ can also take a color for the _remainder_, that is, the parts of the JSON that don't overlap with the slice.
+
+```rust
+println!("{:#}", highlight_with_colors(&res, vec![&res["code"], &res["payload"], &res["payload"]["features"]], Some(vec![Color::Red, Color::Green]), Some(Color::White)));
 ```
 
 ![Overlapping Matches](../master/assets/overlap.png?raw=true)
