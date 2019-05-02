@@ -3,9 +3,15 @@ name = "json-highlight-writer"
 version = "0.1.0"
 authors = ["Gidi Meir Morris <gidi@gidi.io>"]
 edition = "2018"
-description = "A writer for json-rust designs to treat slices of json differently when writing an entire json object"
+description = """
+json-highlight-writer is a writer for json-rust object which supports highlighting slices when printing JSON objects
+"""
 license = "MIT"
-
+documentation = "https://github.com/gmmorris/json-highlight-writer"
+homepage = "https://github.com/gmmorris/json-highlight-writer"
+repository = "https://github.com/gmmorris/json-highlight-writer"
+readme = "README.md"
+keywords = ["json", "write"]
 
 [lib]
 name = "json_highlight_writer"
