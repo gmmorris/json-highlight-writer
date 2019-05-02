@@ -40,7 +40,16 @@ impl<'a> HighlightGenerator<'a> {
         }
     }
 
-    pub fn new_with_colors(colors: Option<Vec<Color>>, remainder_color: Option<Color>) -> Self {
+    pub fn new_with_colors(colors: Vec<Color>) -> Self {
+        HighlightGenerator {
+            code: vec![],
+            slices: vec![],
+            color: Box::new(CycledColors::new(colors)),
+            remainder_color: None
+        }
+    }
+
+    pub fn new_with_colors_and_remainder(colors: Option<Vec<Color>>, remainder_color: Option<Color>) -> Self {
         HighlightGenerator {
             code: vec![],
             slices: vec![],
@@ -331,7 +340,7 @@ mod tests {
         &input["list"]
       ];
 
-      let mut gen = HighlightGenerator::new_with_colors(None, Some(Color::White));
+      let mut gen = HighlightGenerator::new_with_colors_and_remainder(None, Some(Color::White));
 
       gen.write_json_with_highlight(
         &input, &mut slices
@@ -395,7 +404,7 @@ mod tests {
         &input["list"]
       ];
 
-      let mut gen = HighlightGenerator::new_with_colors(Some(vec![Color::Red, Color::Green]), None);
+      let mut gen = HighlightGenerator::new_with_colors(vec![Color::Red, Color::Green]);
 
       gen.write_json_with_highlight(
         &input, &mut slices
@@ -428,7 +437,7 @@ mod tests {
         &input["list"]
       ];
 
-      let mut gen = HighlightGenerator::new_with_colors(Some(vec![Color::Red, Color::Green]), None);
+      let mut gen = HighlightGenerator::new_with_colors(vec![Color::Red, Color::Green]);
 
       gen.write_json_with_highlight(
         &input, &mut slices

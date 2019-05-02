@@ -1,6 +1,6 @@
 [package]
 name = "json-highlight-writer"
-version = "1.0.0"
+version = "1.1.0"
 authors = ["Gidi Meir Morris <gidi@gidi.io>"]
 edition = "2018"
 description = """

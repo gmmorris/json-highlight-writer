@@ -44,7 +44,6 @@ impl HighlightColor for CycledColors {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use json::*;
 
   #[test]
   fn cycledcolors_should_cycle_through_colors() {
